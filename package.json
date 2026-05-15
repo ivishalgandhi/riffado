@@ -1,6 +1,6 @@
 {
     "name": "openplaud",
-    "version": "0.5.1",
+    "version": "0.5.3",
     "description": "Self-hosted AI transcription interface for Plaud Note devices",
     "author": "OpenPlaud Contributors",
     "license": "AGPL-3.0",
@@ -80,6 +80,7 @@
         "tailwind-merge": "^3.4.0",
         "undici": "^7.16.0",
         "vitest": "^4.0.12",
+        "wreq-js": "^2.3.0",
         "zod": "^4.1.12"
     },
     "devDependencies": {

@@ -9,6 +9,16 @@
 ### Changed
 - Sync flow now coalesces concurrent calls for the same user inside one Next.js worker into a single Plaud round-trip; secondary callers receive the same result with an `inProgress: true` marker and the client renders it as a quiet no-op (no extra `router.refresh()`, no duplicate toast). Combined with a new client-side cross-tab `localStorage` in-flight stamp (90s TTL) and a 5s floor on manual sync taps, this collapses N-tab fan-out and rage-clicks before they reach the API. Reduces Webshare proxy load on hosted by suppressing redundant runs that were previously paginating Plaud and re-downloading recordings through the proxy.
 
+## [0.5.3] - 2026-05-15
+
+### Fixed
+- Plaud sync when `WEBSHARE_API_KEY` is set crashed the server with `Cannot find package 'wreq-js' from '.next/server/chunks/[turbopack]_runtime.js'` on Docker deploys. v0.5.2 listed `wreq-js` in `serverExternalPackages` so Turbopack would leave a runtime `externalImport`, but under Next 16 + Turbopack the standalone file tracer does not follow that dynamic import, so `node_modules/wreq-js` never landed in `.next/standalone/node_modules`. Add the package (and its prebuilt `.node` binaries) to `outputFileTracingIncludes` so it ships into the standalone output. Self-host without `WEBSHARE_API_KEY` was unaffected (the module is only required on the proxy path).
+
+## [0.5.2] - 2026-05-15
+
+### Fixed
+- Plaud sync from hosted/VPS deploys whose ASN is flagged by Cloudflare: pair the Webshare residential proxy from v0.5.1 with a Chrome TLS/JA3 fingerprint via `wreq-js`, so Bun's default handshake stops getting a 403 + Cloudflare challenge even from a clean residential IP. Required because Cloudflare scores ASN and TLS fingerprint independently; #148 only addressed the ASN side. Direct path (no `WEBSHARE_API_KEY` set) is unchanged and does not load the new dependency at runtime ([#152](https://github.com/openplaud/openplaud/pull/152)).
+
 ## [0.5.1] - 2026-05-15
 
 ### Added
