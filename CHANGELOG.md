@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-05-15
+
 ### Added
 - Automation API: versioned `/api/v1/recordings` namespace for external agents (list with cursor pagination + `created_since` / `updated_since` / `has_transcription` filters, get, transcript, metadata, audio redirect). Personal API keys (`op_...` prefix, HMAC-SHA256 hashed at rest keyed by `API_TOKEN_HASH_SECRET ?? BETTER_AUTH_SECRET`, revocable, with `source` / `name` / `lastUsedAt` metadata) managed from Settings. Per-IP and per-identity rate limits on `/api/v1/*` (1200/min IP, 600/min identity) with `Retry-After` and `X-RateLimit-*` headers. Signed webhooks (HMAC-SHA256, `t=...,v1=...` header) for `recording.synced`, `recording.updated`, `recording.deleted`, `transcription.completed`, `transcription.failed` with URL + secret encrypted at rest, exponential backoff (30s -> 6h, then dead), DB-leased worker, manual redelivery, and a deliveries inspector. Webhook target policy switches on `WEBHOOKS_REQUIRE_PUBLIC_TARGETS ?? IS_HOSTED`: self-host defaults permissive so docker-bridge URLs like `http://n8n:5678/webhook` keep working. Full reference in `docs/API.md` ([#118](https://github.com/openplaud/openplaud/pull/118)).
 - Documentation site at `/docs` with Guides, Self Hosting, and Reference sections (fumadocs-mdx). `/llms.txt` and `/llms-full.txt` routes for LLM-friendly access ([#131](https://github.com/openplaud/openplaud/pull/131)).
