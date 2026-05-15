@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Added
+- `PLAUD_PROXY_SCOPE` env var (`all` default | `api-only`) controlling whether `resource.plaud.ai` signed-URL audio downloads go through the Webshare residential proxy. Audio bytes dominate proxy bandwidth; operators who verify `resource.plaud.ai` serves direct from their egress IPs (via `scripts/plaud-egress-probe.sh`) can flip to `api-only` and save most of the Webshare quota without affecting API correctness. Default `all` preserves existing behavior.
+- `PLAUD_SYNC_RATE_LIMIT_PER_MINUTE` env var (default 10) capping per-user sync requests. Backstops the new client-side throttling at the route boundary so a script hammering `POST /api/plaud/sync` is rejected before any Plaud or Webshare call is issued.
+
+### Changed
+- Sync flow now coalesces concurrent calls for the same user inside one Next.js worker into a single Plaud round-trip; secondary callers receive the same result with an `inProgress: true` marker and the client renders it as a quiet no-op (no extra `router.refresh()`, no duplicate toast). Combined with a new client-side cross-tab `localStorage` in-flight stamp (90s TTL) and a 5s floor on manual sync taps, this collapses N-tab fan-out and rage-clicks before they reach the API. Reduces Webshare proxy load on hosted by suppressing redundant runs that were previously paginating Plaud and re-downloading recordings through the proxy.
+
 ## [0.5.3] - 2026-05-15
 
 ### Fixed

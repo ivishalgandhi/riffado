@@ -85,6 +85,12 @@ async function fetchProxyList(): Promise<WebshareProxy[]> {
  * CDN (resource.plaud.ai). All Plaud-owned hostnames sit behind the same
  * Cloudflare zone, so any of them can trigger the datacenter-ASN block.
  *
+ * When `PLAUD_PROXY_SCOPE="api-only"`, signed-URL downloads from
+ * resource.plaud.ai bypass the proxy (egress direct). Audio bytes dominate
+ * proxy bandwidth, so operators who have verified resource.plaud.ai serves
+ * direct from their egress IPs can save most of the Webshare quota.
+ * Default remains `"all"` so existing deploys do not regress.
+ *
  * Returns false for unknown / malformed URLs so we never accidentally route
  * non-Plaud traffic through a third-party proxy.
  */
@@ -93,7 +99,12 @@ export function shouldProxyPlaud(url: string): boolean {
         const u = new URL(url);
         if (u.protocol !== "https:") return false;
         const h = u.hostname.toLowerCase();
-        return h === "plaud.ai" || h.endsWith(".plaud.ai");
+        const isPlaud = h === "plaud.ai" || h.endsWith(".plaud.ai");
+        if (!isPlaud) return false;
+        if (env.PLAUD_PROXY_SCOPE === "api-only" && h === "resource.plaud.ai") {
+            return false;
+        }
+        return true;
     } catch {
         return false;
     }

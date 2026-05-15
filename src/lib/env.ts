@@ -96,6 +96,32 @@ export const envSchema = z.object({
         .optional()
         .transform((val) => (val === "" ? undefined : val)),
 
+    // Scope of the Webshare proxy. "all" (default) routes every Plaud
+    // outbound (API + signed-URL audio CDN) through the proxy. "api-only"
+    // skips proxying resource.plaud.ai signed-URL downloads, sending
+    // those direct from the server's egress IP. Audio bytes dominate
+    // proxy bandwidth, so flipping this to api-only on hosted can save
+    // most of the Webshare quota -- BUT only do so after verifying with
+    // scripts/plaud-egress-probe.sh that resource.plaud.ai actually
+    // serves direct from your egress IPs. Inert when WEBSHARE_API_KEY
+    // is unset (no proxy is used at all).
+    PLAUD_PROXY_SCOPE: z.enum(["all", "api-only"]).optional().default("all"),
+
+    // Per-user rate limit on POST /api/plaud/sync, in requests per minute.
+    // Defaults to 10. Backstops the client-side manual-sync floor and
+    // cross-tab dedup: even if a script hammers the endpoint, the bucket
+    // throttles it before any Plaud or Webshare call is issued. Set lower
+    // for tighter quotas, higher for power users. Range 1..600.
+    PLAUD_SYNC_RATE_LIMIT_PER_MINUTE: z
+        .string()
+        .regex(
+            /^\d+$/,
+            "PLAUD_SYNC_RATE_LIMIT_PER_MINUTE must be a positive integer",
+        )
+        .optional()
+        .transform((val) => (val ? Number(val) : 10))
+        .pipe(z.number().int().positive().max(600)),
+
     SMTP_HOST: z.string().optional(),
     SMTP_PORT: z
         .string()
@@ -219,6 +245,9 @@ function validateEnv(): Env {
             S3_ACCESS_KEY_ID: process.env.S3_ACCESS_KEY_ID,
             S3_SECRET_ACCESS_KEY: process.env.S3_SECRET_ACCESS_KEY,
             WEBSHARE_API_KEY: process.env.WEBSHARE_API_KEY,
+            PLAUD_PROXY_SCOPE: process.env.PLAUD_PROXY_SCOPE,
+            PLAUD_SYNC_RATE_LIMIT_PER_MINUTE:
+                process.env.PLAUD_SYNC_RATE_LIMIT_PER_MINUTE,
             SMTP_HOST: process.env.SMTP_HOST,
             SMTP_PORT: process.env.SMTP_PORT,
             SMTP_SECURE: process.env.SMTP_SECURE,

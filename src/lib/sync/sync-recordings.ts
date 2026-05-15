@@ -29,7 +29,25 @@ interface SyncResult {
     errors: string[];
     /** IDs of recordings that need transcription */
     pendingTranscriptionIds: string[];
+    /**
+     * True when this call coalesced into an already-running sync in the
+     * same process. Counts/IDs reflect that in-flight run, not a fresh
+     * one. Multi-process correctness is handled by the rate limiter at
+     * the route boundary (see `enforcePlaudSyncRateLimit`); this flag is
+     * only set within a single Node worker.
+     */
+    inProgress?: boolean;
 }
+
+/**
+ * Per-user in-flight sync promises. A second request for the same user
+ * while a sync is running in the same process awaits the existing promise
+ * rather than starting a parallel Plaud paginate + download pass. This is
+ * the cheapest possible dedup layer; the per-user rate limit in the route
+ * handler is the cross-process correctness backstop (AGENTS.md: in-memory
+ * locks must not be the only correctness mechanism).
+ */
+const inFlightSyncs = new Map<string, Promise<SyncResult>>();
 
 interface SyncContext {
     userId: string;
@@ -305,10 +323,32 @@ async function processBatch(
  * - Downloads concurrently in batches (5 at a time)
  * - Queues transcription for after sync completes
  * - Stops early if no new recordings found
+ * - In-process dedup: concurrent calls for the same user share one run
  */
 export async function syncRecordingsForUser(
     userId: string,
 ): Promise<SyncResult> {
+    const inFlight = inFlightSyncs.get(userId);
+    if (inFlight) {
+        const shared = await inFlight;
+        // Mark the coalesced response so the route handler / client can
+        // distinguish it from a fresh run. We deliberately do NOT mutate
+        // the in-flight result object (other awaiters share it).
+        return { ...shared, inProgress: true };
+    }
+
+    const run = runSyncRecordingsForUser(userId);
+    inFlightSyncs.set(userId, run);
+    try {
+        return await run;
+    } finally {
+        // Always clear, even on throw, so a failed sync doesn't wedge the
+        // user out of future attempts.
+        inFlightSyncs.delete(userId);
+    }
+}
+
+async function runSyncRecordingsForUser(userId: string): Promise<SyncResult> {
     const result: SyncResult = {
         newRecordings: 0,
         updatedRecordings: 0,

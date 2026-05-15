@@ -26,6 +26,7 @@ import {
 
 const mockEnv = vi.hoisted(() => ({
     WEBSHARE_API_KEY: undefined as string | undefined,
+    PLAUD_PROXY_SCOPE: "all" as "all" | "api-only",
 }));
 
 vi.mock("@/lib/env", () => ({ env: mockEnv }));
@@ -94,6 +95,7 @@ beforeEach(() => {
     global.fetch = mockFetch as typeof global.fetch;
     mockWreq.fetch.mockReset();
     mockEnv.WEBSHARE_API_KEY = undefined;
+    mockEnv.PLAUD_PROXY_SCOPE = "all";
     _resetPlaudProxyCacheForTest();
     _resetPlaudFetchForTest();
 });
@@ -116,6 +118,17 @@ describe("shouldProxyPlaud", () => {
         expect(shouldProxyPlaud("https://plaud.ai.evil.com/")).toBe(false);
         expect(shouldProxyPlaud("http://api.plaud.ai/")).toBe(false);
         expect(shouldProxyPlaud("not-a-url")).toBe(false);
+    });
+
+    it("skips resource.plaud.ai when PLAUD_PROXY_SCOPE=api-only", () => {
+        mockEnv.PLAUD_PROXY_SCOPE = "api-only";
+        // API still proxied.
+        expect(shouldProxyPlaud("https://api.plaud.ai/foo")).toBe(true);
+        expect(shouldProxyPlaud("https://api-euc1.plaud.ai/foo")).toBe(true);
+        // Audio CDN bypassed.
+        expect(shouldProxyPlaud("https://resource.plaud.ai/file.mp3")).toBe(
+            false,
+        );
     });
 });
 
