@@ -42,7 +42,9 @@
  */
 
 import { execSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const TARGET = process.argv[2];
 const BUMP_TYPES = new Set(["major", "minor", "patch"]);
@@ -234,7 +236,11 @@ function phase1(target: string): void {
 
 	// Write the PR body to a temp file rather than passing it inline — long
 	// multiline strings on the shell command line get mangled by quoting.
-	const bodyPath = `/tmp/openplaud-release-pr-${version}.md`;
+	// Use mkdtempSync for a fresh, unpredictable directory so a pre-planted
+	// symlink in the system temp dir can't redirect the write
+	// (js/insecure-temporary-file).
+	const tmpDir = mkdtempSync(join(tmpdir(), "openplaud-release-"));
+	const bodyPath = join(tmpDir, `pr-body-v${version}.md`);
 	writeFileSync(bodyPath, prBody);
 	run(
 		`gh pr create --base main --head ${branch} --title "chore(release): v${version}" --body-file ${bodyPath}`,
