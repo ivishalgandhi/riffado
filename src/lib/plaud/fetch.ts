@@ -98,7 +98,7 @@ export async function plaudFetch(
                     currentProxy.label,
                     err instanceof Error ? err.message : String(err),
                 );
-                invalidatePlaudProxy();
+                invalidatePlaudProxy(currentProxy);
                 const next = await getPlaudProxyUrl();
                 if (!next) {
                     // No more proxies — last-resort direct attempt so a
@@ -126,13 +126,20 @@ export async function plaudFetch(
                 currentProxy.label,
                 response.statusText,
             );
-            invalidatePlaudProxy();
-            // Drain the body so the connection can be reused; ignore
-            // errors — we don't care about the contents at this point.
-            await response.body?.cancel().catch(() => undefined);
+            invalidatePlaudProxy(currentProxy);
 
+            // Resolve the next proxy BEFORE touching the body. If we
+            // cancel the body and then discover there's no next proxy,
+            // we'd return a `Response` whose body has already been
+            // consumed, and the caller (which expects to read JSON)
+            // would blow up on a parse step that worked fine pre-rotate.
             const next = await getPlaudProxyUrl();
             if (!next) return response;
+
+            // Now safe to drain the body so the connection can be
+            // reused for the retry; ignore errors — we don't care
+            // about the contents at this point.
+            await response.body?.cancel().catch(() => undefined);
             currentProxy = next;
             attempt += 1;
             continue;

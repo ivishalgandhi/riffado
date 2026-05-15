@@ -172,6 +172,23 @@ describe("plaudFetch with Webshare configured", () => {
         expect(mockFetch).toHaveBeenCalledTimes(3);
     });
 
+    it("returns a readable body when rotation is exhausted (no second proxy)", async () => {
+        // Pins the fix for cubic P1 (canceled-body bug): when only one
+        // proxy is available and it 403s, plaudFetch must surface the
+        // 403 Response with its body intact so the caller can parse it.
+        mockFetch
+            .mockResolvedValueOnce(webshareList([sampleProxy]))
+            .mockResolvedValueOnce(forbiddenResponse());
+
+        const res = await plaudFetch(PLAUD_API_URL);
+        expect(res.status).toBe(403);
+        // The critical assertion: body has not been canceled. Reading
+        // it would throw with `TypeError: Body is unusable` if the bug
+        // were present.
+        const text = await res.text();
+        expect(text).toContain("Cloudflare");
+    });
+
     it("returns the success response after a rotation succeeds", async () => {
         mockFetch
             .mockResolvedValueOnce(webshareList([sampleProxy, otherProxy]))

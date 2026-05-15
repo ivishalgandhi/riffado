@@ -40,10 +40,11 @@ TOKEN_PREFIX="${TOKEN:0:12}..."
 WEBSHARE_PROXY_LABEL=""
 if [[ -n "${WEBSHARE_API_KEY:-}" ]]; then
     WEBSHARE_JSON_FILE="$(mktemp)"
-    curl -sS --max-time 15 \
+    WEBSHARE_HTTP_STATUS="$(curl -sS --max-time 15 \
         -H "Authorization: Token ${WEBSHARE_API_KEY}" \
         'https://proxy.webshare.io/api/v2/proxy/list/?mode=direct&page=1&page_size=100' \
-        -o "$WEBSHARE_JSON_FILE" || true
+        -o "$WEBSHARE_JSON_FILE" \
+        -w '%{http_code}' || true)"
 
     # Pick a random valid proxy. Use node (already required by the app)
     # so we don't depend on jq or python on the host. Writes two lines:
@@ -74,13 +75,15 @@ JS
         WEBSHARE_PROXY_LABEL="$(sed -n '2p' "$WEBSHARE_PICK_FILE")"
         export HTTPS_PROXY
     else
-        echo "WEBSHARE_API_KEY set but Webshare returned no valid proxies (or node missing); continuing direct" >&2
-        # Show what Webshare returned so we can diagnose key issues.
-        if [[ -s "$WEBSHARE_JSON_FILE" ]]; then
-            echo "Webshare response (first 200 chars):" >&2
-            head -c 200 "$WEBSHARE_JSON_FILE" >&2
-            echo >&2
-        fi
+        # Diagnose without ever printing the raw Webshare body — the
+        # response payload contains proxy credentials (username +
+        # password fields) that must not leak into pasted logs.
+        WEBSHARE_BODY_BYTES="$(wc -c < "$WEBSHARE_JSON_FILE" 2>/dev/null | tr -d ' ' || echo 0)"
+        echo "WEBSHARE_API_KEY set but proxy selection failed (continuing direct)" >&2
+        echo "  Webshare HTTP status: ${WEBSHARE_HTTP_STATUS:-<unknown>}" >&2
+        echo "  Webshare body bytes:  ${WEBSHARE_BODY_BYTES}" >&2
+        echo "  (raw response not printed: it contains proxy credentials)" >&2
+        echo "  Common causes: bad API key (expect 401), no valid proxies on the plan, or node missing on host." >&2
     fi
     rm -f "$WEBSHARE_JSON_FILE" "$WEBSHARE_PICK_FILE"
 fi

@@ -49,7 +49,6 @@ const WEBSHARE_LIST_URL =
 
 let cachedList: ProxyCache | null = null;
 let badProxyIds = new Set<string>();
-let lastServedProxyId: string | null = null;
 
 async function fetchProxyList(): Promise<WebshareProxy[]> {
     const apiKey = env.WEBSHARE_API_KEY;
@@ -101,6 +100,8 @@ export function shouldProxyPlaud(url: string): boolean {
 }
 
 export interface SelectedProxy {
+    /** Webshare proxy id — the stable handle used for blacklisting. */
+    id: string;
     /** http://user:pass@host:port form. Contains credentials — do not log. */
     url: string;
     /** host:port — safe to log. */
@@ -141,19 +142,21 @@ export async function getPlaudProxyUrl(): Promise<SelectedProxy | null> {
     const proxy = available[Math.floor(Math.random() * available.length)];
     const url = `http://${encodeURIComponent(proxy.username)}:${encodeURIComponent(proxy.password)}@${proxy.proxy_address}:${proxy.port}`;
     const label = `${proxy.proxy_address}:${proxy.port}`;
-    lastServedProxyId = proxy.id;
-    return { url, label };
+    return { id: proxy.id, url, label };
 }
 
 /**
- * Mark the most-recently-served proxy as bad. Called when Plaud returns 403
- * (Cloudflare challenge — proxy IP is also flagged) or 407 (proxy auth
+ * Mark a specific proxy as bad. Called by `plaudFetch` when Plaud returns
+ * 403 (Cloudflare challenge — proxy IP is also flagged) or 407 (proxy auth
  * rejected). The proxy stays blacklisted until the next list refresh.
+ *
+ * Takes the proxy explicitly (rather than reading a module-global
+ * "last served") so concurrent `plaudFetch` calls can't blacklist each
+ * other's proxy by race: each caller threads its own `SelectedProxy`
+ * through and invalidates exactly the one it just used.
  */
-export function invalidatePlaudProxy(): void {
-    if (lastServedProxyId) {
-        badProxyIds.add(lastServedProxyId);
-    }
+export function invalidatePlaudProxy(proxy: SelectedProxy): void {
+    badProxyIds.add(proxy.id);
 }
 
 /**
@@ -170,5 +173,4 @@ export function isPlaudProxyConfigured(): boolean {
 export function _resetPlaudProxyCacheForTest(): void {
     cachedList = null;
     badProxyIds = new Set();
-    lastServedProxyId = null;
 }
