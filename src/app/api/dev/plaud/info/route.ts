@@ -68,7 +68,7 @@ export const GET = apiHandler(async (request: Request) => {
         reachable,
         latencyMs,
         error: errorMessage,
-        // Whether outbound Plaud calls go through the Webshare residential
+        // Whether outbound Plaud calls go through the Webshare datacenter
         // proxy. Surfaced here so we can quickly tell, on a flagged-egress
         // VPS, whether the proxy path is wired up.
         usingPlaudProxy: isPlaudProxyConfigured(),

@@ -56,7 +56,7 @@ const STORAGE_KEY = "openplaud_last_sync";
  * Cross-tab in-flight stamp. Multiple browser tabs running this hook will
  * each try to sync on mount / visibility-change; without coordination they
  * fan out into N concurrent server calls, each of which on hosted is one
- * round-trip through the Webshare residential proxy. The first tab to start
+ * round-trip through the Webshare datacenter proxy. The first tab to start
  * a sync writes a token here; sibling tabs see a recent stamp and skip
  * their own call. Self-expiring after IN_FLIGHT_TTL_MS so a crashed tab
  * can't permanently block sync for the rest.

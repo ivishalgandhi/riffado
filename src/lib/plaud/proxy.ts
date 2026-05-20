@@ -8,14 +8,15 @@
  * `scripts/plaud-egress-probe.sh` from a flagged VPS IP: every Plaud
  * endpoint, every region, every header combination returned 403 with
  * `server: cloudflare` and a `<title>Attention Required!</title>` body.
- * From a residential IP (or via a residential proxy) the same requests
- * return 200.
+ * From a residential IP (or via a non-flagged proxy IP) the same
+ * requests return 200.
  *
- * Strategy: bring-your-own residential proxy via Webshare. When
- * `WEBSHARE_API_KEY` is set, this module lists Webshare's available
- * proxies (cached 5 min), rotates randomly per call, and blacklists any
- * that get rejected by Plaud. When the env var is unset (default — the
- * self-host path) every call routes direct.
+ * Strategy: bring-your-own Webshare datacenter proxies. When
+ * `WEBSHARE_API_KEY` is set, this module lists the operator's Webshare
+ * proxies via `proxy/list/?mode=direct` (a fixed list of stable
+ * datacenter IPs, cached 5 min), rotates randomly per call, and
+ * blacklists any that get rejected. When the env var is unset (default
+ * — the self-host path) every call routes direct.
  *
  * Self-host degradation: residential / homelab IPs aren't on Cloudflare's
  * datacenter-ASN bucket, so the direct path keeps working for the

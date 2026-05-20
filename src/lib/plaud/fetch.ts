@@ -1,13 +1,13 @@
 /**
  * `plaudFetch` — thin wrapper around `fetch()` that routes Plaud-bound
- * requests through a residential proxy when one is configured.
+ * requests through a datacenter proxy when one is configured.
  *
  * Why two layers of mitigation, not one: Plaud sits behind Cloudflare's
  * Bot Management, which scores TWO signals independently:
  *
  *   1. Source IP / ASN. Datacenter ASNs (Contabo, OVH, Hetzner, …) are
  *      bucketed and blocked at the edge. Mitigated by routing through a
- *      Webshare residential proxy — see `./proxy.ts`.
+ *      Webshare datacenter proxy — see `./proxy.ts`.
  *   2. TLS / HTTP fingerprint (JA3, JA4, HTTP/2 SETTINGS, header order).
  *      OpenPlaud runs on Bun in production (`Dockerfile` uses `oven/bun:1`),
  *      and Bun's TLS handshake produces a fingerprint Cloudflare flags as
@@ -17,7 +17,7 @@
  *      SETTINGS frame.
  *
  * The two mitigations compose: app → wreq-js (Chrome JA3) → Webshare
- * (residential ASN) → Plaud. Both are required on flagged-VPS deploys.
+ * (datacenter ASN) → Plaud. Both are required on flagged-VPS deploys.
  *
  * Behaviour summary:
  *   1. Decides per-URL whether to proxy (`shouldProxyPlaud`).

@@ -3,7 +3,7 @@
  *
  * Why: every sync request that reaches `syncRecordingsForUser` paginates
  * Plaud and downloads any new/changed recordings, all of which go through
- * the Webshare residential proxy on hosted (see `src/lib/plaud/proxy.ts`).
+ * the Webshare datacenter proxy on hosted (see `src/lib/plaud/proxy.ts`).
  * A user spam-clicking the sync button, or N tabs auto-syncing in parallel,
  * fans out into N concurrent proxy-bound runs. Backstop here: cap at
  * `PLAUD_SYNC_RATE_LIMIT_PER_MINUTE` (default 10) per user per minute,

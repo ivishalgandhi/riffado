@@ -5,7 +5,7 @@
  * Why this exists: unit tests in `plaud-proxy.test.ts` mock both the
  * Webshare API and `wreq-js`, so they can't catch the failure mode that
  * actually shipped — a runtime TLS fingerprint that Cloudflare flags
- * even with a valid residential proxy IP. This file hits real Plaud
+ * even with a valid datacenter proxy IP. This file hits real Plaud
  * through a real Webshare proxy from the current Bun runtime, which is
  * the only configuration that reproduces the regression.
  *
@@ -14,7 +14,7 @@
  *                         /team-app/workspaces/list, a read-only endpoint
  *                         that returns the user's own workspaces).
  *   WEBSHARE_API_KEY    — a Webshare account with at least one valid
- *                         residential proxy in its list.
+ *                         datacenter proxy in its list.
  *
  * Run:
  *   PLAUD_BEARER_TOKEN=eyJ... WEBSHARE_API_KEY=... \

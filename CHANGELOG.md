@@ -7,6 +7,7 @@
 - `PLAUD_SYNC_RATE_LIMIT_PER_MINUTE` env var (default 10) capping per-user sync requests. Backstops the new client-side throttling at the route boundary so a script hammering `POST /api/plaud/sync` is rejected before any Plaud or Webshare call is issued.
 
 ### Changed
+- Documentation correction: prior CHANGELOG entries (releases 0.5.x) and code comments described the `WEBSHARE_API_KEY` integration as routing through "residential" proxies. This was inaccurate documentation. The integration uses Webshare's datacenter proxy product — the `proxy/list/?mode=direct` API returns a fixed list of stable datacenter IPs the operator provisions, rather than the backconnect endpoint used by Webshare's residential product. Comments and env var descriptions throughout `src/` have been updated to match the implementation. The runtime behavior is unchanged; only documentation has been corrected.
 - Sync flow now coalesces concurrent calls for the same user inside one Next.js worker into a single Plaud round-trip; secondary callers receive the same result with an `inProgress: true` marker and the client renders it as a quiet no-op (no extra `router.refresh()`, no duplicate toast). Combined with a new client-side cross-tab `localStorage` in-flight stamp (90s TTL) and a 5s floor on manual sync taps, this collapses N-tab fan-out and rage-clicks before they reach the API. Reduces Webshare proxy load on hosted by suppressing redundant runs that were previously paginating Plaud and re-downloading recordings through the proxy.
 
 ## [0.5.3] - 2026-05-15
