@@ -39,7 +39,7 @@ export function transcriptSnippet(
         .trim();
     if (!stripped) return null;
     if (stripped.length <= maxChars) return stripped;
-    return `${stripped.slice(0, maxChars - 1).trimEnd()}...`;
+    return `${stripped.slice(0, maxChars - 1).trimEnd()}…`;
 }
 
 export function Row({

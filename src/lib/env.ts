@@ -83,7 +83,7 @@ export const envSchema = z.object({
     S3_ACCESS_KEY_ID: z.string().optional(),
     S3_SECRET_ACCESS_KEY: z.string().optional(),
 
-    // Webshare datacenter-proxy API key. When set, Plaud-bound outbound
+    // Webshare residential-proxy API key. When set, Plaud-bound outbound
     // requests route through the operator's Webshare proxy list with
     // automatic rotation on 403/407. Unset (default) keeps every call
     // on the direct egress path.
