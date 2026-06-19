@@ -20,7 +20,7 @@
  * Mirrors `scripts/release.ts`. Never touches root package.json.
  */
 
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 
 const TARGET = process.argv[2];
@@ -49,6 +49,24 @@ function run(cmd: string, opts: { silent?: boolean; cwd?: string } = {}): string
     }
 }
 
+// Like run() but spawns without a shell, so caller-supplied values (e.g. the
+// version arg from argv) cannot be interpreted as shell syntax.
+function runFile(file: string, args: string[], opts: { cwd?: string } = {}): string {
+    console.log(`$ ${file} ${args.join(" ")}`);
+    try {
+        return (
+            execFileSync(file, args, {
+                encoding: "utf-8",
+                stdio: "inherit",
+                cwd: opts.cwd,
+            }) ?? ""
+        );
+    } catch {
+        console.error(`Command failed: ${file} ${args.join(" ")}`);
+        process.exit(1);
+    }
+}
+
 function readPkg(): { version: string } {
     return JSON.parse(readFileSync("cli/package.json", "utf-8"));
 }
@@ -65,15 +83,11 @@ function compareVersions(a: string, b: string): number {
 
 function bumpVersion(target: string): string {
     const current = readPkg().version;
-    if (BUMP_TYPES.has(target)) {
-        run(`npm version ${target} --no-git-tag-version`, { cwd: "cli" });
-    } else {
-        if (compareVersions(target, current) <= 0) {
-            console.error(`Error: ${target} must be greater than current ${current}.`);
-            process.exit(1);
-        }
-        run(`npm version ${target} --no-git-tag-version`, { cwd: "cli" });
+    if (!BUMP_TYPES.has(target) && compareVersions(target, current) <= 0) {
+        console.error(`Error: ${target} must be greater than current ${current}.`);
+        process.exit(1);
     }
+    runFile("npm", ["version", target, "--no-git-tag-version"], { cwd: "cli" });
     return readPkg().version;
 }
 
