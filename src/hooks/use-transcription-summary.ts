@@ -2,6 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import {
+    getAllSummaryPrompts,
+    getDefaultSummaryPromptConfig,
+    type SummaryPromptConfiguration,
+} from "@/lib/ai/summary-presets";
 
 export interface SummaryData {
     summary: string | null;
@@ -40,7 +45,29 @@ export function useTranscriptionSummary({
     const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
     const [isSummarizing, setIsSummarizing] = useState(false);
     const [summaryExpanded, setSummaryExpanded] = useState(true);
+    const [summaryPromptConfig, setSummaryPromptConfig] =
+        useState<SummaryPromptConfiguration>(getDefaultSummaryPromptConfig());
     const [summaryPreset, setSummaryPreset] = useState("general");
+
+    // Load the user's saved summary prompt config once.
+    useEffect(() => {
+        fetch("/api/settings/user")
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => {
+                const config =
+                    (data?.summaryPrompt as SummaryPromptConfiguration | null) || {
+                        selectedPrompt: "general",
+                        customPrompts: [],
+                    };
+                const normalized: SummaryPromptConfiguration = {
+                    selectedPrompt: config.selectedPrompt || "general",
+                    customPrompts: config.customPrompts || [],
+                };
+                setSummaryPromptConfig(normalized);
+                setSummaryPreset(normalized.selectedPrompt);
+            })
+            .catch(() => {});
+    }, []);
 
     // Re-fetch trigger separate from the URL/id key so callers can
     // bump it imperatively (e.g. right after a re-transcribe finishes,
@@ -143,11 +170,15 @@ export function useTranscriptionSummary({
         setSummaryFetchKey((k) => k + 1);
     }, []);
 
+    const summaryPrompts = getAllSummaryPrompts(summaryPromptConfig);
+
     return {
         summaryData,
         isSummarizing,
         summaryExpanded,
         setSummaryExpanded,
+        summaryPromptConfig,
+        summaryPrompts,
         summaryPreset,
         setSummaryPreset,
         handleSummarize,
