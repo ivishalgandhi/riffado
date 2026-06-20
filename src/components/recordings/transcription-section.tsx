@@ -22,7 +22,6 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { useTranscriptionSummary } from "@/hooks/use-transcription-summary";
-import { SUMMARY_PRESETS } from "@/lib/ai/summary-presets";
 
 interface TranscriptionSectionProps {
     recordingId: string;
@@ -47,6 +46,7 @@ export function TranscriptionSection({
         isSummarizing,
         summaryExpanded,
         setSummaryExpanded,
+        summaryPrompts,
         summaryPreset,
         setSummaryPreset,
         handleSummarize,
@@ -188,19 +188,22 @@ export function TranscriptionSection({
                                         onValueChange={setSummaryPreset}
                                     >
                                         <SelectTrigger className="w-[160px] h-8 text-xs">
-                                            <SelectValue />
+                                            <SelectValue>
+                                                {summaryPrompts.find(
+                                                    (p) =>
+                                                        p.id === summaryPreset,
+                                                )?.name || summaryPreset}
+                                            </SelectValue>
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {Object.values(SUMMARY_PRESETS).map(
-                                                (preset) => (
-                                                    <SelectItem
-                                                        key={preset.id}
-                                                        value={preset.id}
-                                                    >
-                                                        {preset.name}
-                                                    </SelectItem>
-                                                ),
-                                            )}
+                                            {summaryPrompts.map((prompt) => (
+                                                <SelectItem
+                                                    key={prompt.id}
+                                                    value={prompt.id}
+                                                >
+                                                    {prompt.name}
+                                                </SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                 )}
