@@ -17,13 +17,17 @@ export const RIFFADO_REPO_URL = `https://github.com/${RIFFADO_REPO}`;
  */
 export async function fetchStarCount(): Promise<number | null> {
     try {
+        const ac = new AbortController();
+        const t = setTimeout(() => ac.abort(), 5_000);
         const res = await fetch(
             `https://api.github.com/repos/${RIFFADO_REPO}`,
             {
+                signal: ac.signal,
                 next: { revalidate: 3600 },
                 headers: { Accept: "application/vnd.github+json" },
             },
         );
+        clearTimeout(t);
         if (!res.ok) return null;
         const data = (await res.json()) as { stargazers_count?: number };
         return typeof data.stargazers_count === "number"

@@ -57,3 +57,7 @@ README.md
 
 # graphify output
 /graphify-out
+
+# lockfiles for other package managers (project uses pnpm)
+package-lock.json
+bun.lock

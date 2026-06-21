@@ -23,9 +23,12 @@ export async function renderInstallScript(version: string): Promise<string> {
 
 export async function fetchLatestReleaseTag(): Promise<string | null> {
     try {
+        const ac = new AbortController();
+        const t = setTimeout(() => ac.abort(), 5_000);
         const res = await fetch(
             "https://api.github.com/repos/riffado/riffado/releases/latest",
             {
+                signal: ac.signal,
                 headers: {
                     Accept: "application/vnd.github+json",
                     "X-GitHub-Api-Version": "2022-11-28",
@@ -33,6 +36,7 @@ export async function fetchLatestReleaseTag(): Promise<string | null> {
                 next: { revalidate: 300 },
             },
         );
+        clearTimeout(t);
         if (!res.ok) return null;
         const data = (await res.json()) as { tag_name?: unknown };
         const tag = typeof data.tag_name === "string" ? data.tag_name : null;
