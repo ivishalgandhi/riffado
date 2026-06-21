@@ -1,5 +1,5 @@
 {
-  "id": "d3c14fdf-4411-4d8e-b172-ee8ceada5a49",
+  "id": "758de0b0-d3cd-4be1-9e42-d253b1115872",
   "prevId": "f2b56a10-4c76-4c96-b7f1-238e94980c83",
   "version": "7",
   "dialect": "postgresql",
@@ -377,26 +377,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "recommendations": {
-          "name": "recommendations",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "management_insights": {
-          "name": "management_insights",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "director_insights": {
-          "name": "director_insights",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ai_suggestions": {
-          "name": "ai_suggestions",
+        "summary_json": {
+          "name": "summary_json",
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false

@@ -16,8 +16,10 @@ export interface SummaryData {
     managementInsights: string[] | null;
     directorInsights: string[] | null;
     aiSuggestions: string[] | null;
+    [key: string]: unknown;
     provider?: string;
     model?: string;
+    createdAt?: string;
 }
 
 interface UseTranscriptionSummaryOptions {

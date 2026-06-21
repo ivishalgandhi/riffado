@@ -221,42 +221,26 @@ export const POST = apiHandler<IdContext>(async (request, context) => {
 
     const rawContent = response.choices[0]?.message?.content?.trim() || "";
 
-    // Parse the JSON response
+    // Parse the JSON response. We keep the full structured object so
+    // future fields can be stored and rendered without a schema change.
+    const cleanContent = rawContent
+        .replace(/^```(?:json)?\s*/i, "")
+        .replace(/\s*```$/i, "")
+        .trim();
+
+    let parsedSummary: Record<string, unknown> = {};
     let summary = "";
-    let keyPoints: string[] = [];
-    let actionItems: string[] = [];
-    let recommendations: string[] = [];
-    let managementInsights: string[] = [];
-    let directorInsights: string[] = [];
-    let aiSuggestions: string[] = [];
 
     try {
-        // Strip markdown code fences if present
-        const cleanContent = rawContent
-            .replace(/^```(?:json)?\s*/i, "")
-            .replace(/\s*```$/i, "")
-            .trim();
-        const parsed = JSON.parse(cleanContent);
-        summary = parsed.summary || "";
-        keyPoints = Array.isArray(parsed.keyPoints) ? parsed.keyPoints : [];
-        actionItems = Array.isArray(parsed.actionItems)
-            ? parsed.actionItems
-            : [];
-        recommendations = Array.isArray(parsed.recommendations)
-            ? parsed.recommendations
-            : [];
-        managementInsights = Array.isArray(parsed.managementInsights)
-            ? parsed.managementInsights
-            : [];
-        directorInsights = Array.isArray(parsed.directorInsights)
-            ? parsed.directorInsights
-            : [];
-        aiSuggestions = Array.isArray(parsed.aiSuggestions)
-            ? parsed.aiSuggestions
-            : [];
+        parsedSummary = JSON.parse(cleanContent) as Record<string, unknown>;
+        summary =
+            typeof parsedSummary.summary === "string"
+                ? parsedSummary.summary
+                : "";
     } catch {
         // Fallback: treat entire response as summary text
         summary = rawContent;
+        parsedSummary = { summary };
     }
 
     // Atomic tombstone re-check + upsert.
@@ -301,31 +285,31 @@ export const POST = apiHandler<IdContext>(async (request, context) => {
                 )
                 .limit(1);
 
-            // Encrypt content fields at rest. `summary` is a text column;
-            // `keyPoints` / `actionItems` are jsonb columns and are stored
-            // as `{ c: <ciphertext> }` envelopes (option (a) from the
-            // rollout plan — keeps the schema unchanged).
+            // Encrypt content fields at rest. `summaryJson` holds the full
+            // structured response so future fields can be added without a
+            // schema change. The legacy `summary`/`keyPoints`/`actionItems`
+            // columns stay populated for backward compatibility.
             const encryptedSummary = encryptText(summary);
-            const encryptedKeyPoints = encryptJsonField(keyPoints);
-            const encryptedActionItems = encryptJsonField(actionItems);
-            const encryptedRecommendations = encryptJsonField(recommendations);
-            const encryptedManagementInsights =
-                encryptJsonField(managementInsights);
-            const encryptedDirectorInsights =
-                encryptJsonField(directorInsights);
-            const encryptedAiSuggestions = encryptJsonField(aiSuggestions);
+            const encryptedSummaryJson = encryptJsonField(parsedSummary);
+            const encryptedKeyPoints = encryptJsonField(
+                Array.isArray(parsedSummary.keyPoints)
+                    ? parsedSummary.keyPoints
+                    : [],
+            );
+            const encryptedActionItems = encryptJsonField(
+                Array.isArray(parsedSummary.actionItems)
+                    ? parsedSummary.actionItems
+                    : [],
+            );
 
             if (existing) {
                 await tx
                     .update(aiEnhancements)
                     .set({
                         summary: encryptedSummary,
+                        summaryJson: encryptedSummaryJson,
                         keyPoints: encryptedKeyPoints,
                         actionItems: encryptedActionItems,
-                        recommendations: encryptedRecommendations,
-                        managementInsights: encryptedManagementInsights,
-                        directorInsights: encryptedDirectorInsights,
-                        aiSuggestions: encryptedAiSuggestions,
                         provider: credentials.provider,
                         model,
                     })
@@ -340,12 +324,9 @@ export const POST = apiHandler<IdContext>(async (request, context) => {
                     recordingId: id,
                     userId: session.user.id,
                     summary: encryptedSummary,
+                    summaryJson: encryptedSummaryJson,
                     keyPoints: encryptedKeyPoints,
                     actionItems: encryptedActionItems,
-                    recommendations: encryptedRecommendations,
-                    managementInsights: encryptedManagementInsights,
-                    directorInsights: encryptedDirectorInsights,
-                    aiSuggestions: encryptedAiSuggestions,
                     provider: credentials.provider,
                     model,
                 });
@@ -374,13 +355,7 @@ export const POST = apiHandler<IdContext>(async (request, context) => {
     }
 
     return NextResponse.json({
-        summary,
-        keyPoints,
-        actionItems,
-        recommendations,
-        managementInsights,
-        directorInsights,
-        aiSuggestions,
+        ...parsedSummary,
         provider: credentials.provider,
         model,
     });
@@ -452,20 +427,14 @@ export const GET = apiHandler<IdContext>(async (request, context) => {
 
     // Decrypt content fields before returning to the client. Legacy
     // plaintext rows pass through verbatim during the backfill window.
+    const summaryJson =
+        decryptJsonField<Record<string, unknown>>(enhancement.summaryJson) ??
+        {};
+    const legacySummary = decryptText(enhancement.summary);
+
     return NextResponse.json({
-        summary: decryptText(enhancement.summary),
-        keyPoints: decryptJsonField<string[]>(enhancement.keyPoints),
-        actionItems: decryptJsonField<string[]>(enhancement.actionItems),
-        recommendations: decryptJsonField<string[]>(
-            enhancement.recommendations,
-        ),
-        managementInsights: decryptJsonField<string[]>(
-            enhancement.managementInsights,
-        ),
-        directorInsights: decryptJsonField<string[]>(
-            enhancement.directorInsights,
-        ),
-        aiSuggestions: decryptJsonField<string[]>(enhancement.aiSuggestions),
+        summary: legacySummary,
+        ...summaryJson,
         provider: enhancement.provider,
         model: enhancement.model,
         createdAt: enhancement.createdAt,
