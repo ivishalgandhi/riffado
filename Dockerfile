@@ -32,7 +32,7 @@ RUN apt-get update \
 # Compile MDX docs into `src/.source/` before `next build` -- this is what
 # the postinstall hook would have done on a non-Docker install.
 RUN bunx fumadocs-mdx source.config.ts src/.source
-RUN bun run build
+RUN bun run build > /tmp/build.log 2>&1 || (cat /tmp/build.log && exit 1)
 
 # Bundle idempotent migration script with all dependencies
 RUN bun build src/db/migrate-idempotent.ts --target=bun --outfile=migrate-idempotent.js
