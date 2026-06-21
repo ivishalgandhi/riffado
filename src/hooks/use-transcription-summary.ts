@@ -12,6 +12,10 @@ export interface SummaryData {
     summary: string | null;
     keyPoints: string[] | null;
     actionItems: string[] | null;
+    recommendations: string[] | null;
+    managementInsights: string[] | null;
+    directorInsights: string[] | null;
+    aiSuggestions: string[] | null;
     provider?: string;
     model?: string;
 }
