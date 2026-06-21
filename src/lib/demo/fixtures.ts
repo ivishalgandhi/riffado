@@ -106,10 +106,22 @@ const SEEDS: DemoRecordingSeed[] = [
                 "Product: sign off on the export-format spec by Friday.",
                 "Support: keep weekly TTR report going into Q1 planning.",
             ],
-            recommendations: null,
-            managementInsights: null,
-            directorInsights: null,
-            aiSuggestions: null,
+            recommendations: [
+                "Raise the enterprise SLA as a sales talking point.",
+                "Use the migration win-back story in the Q4 board deck.",
+            ],
+            managementInsights: [
+                "Churn and support-load metrics are both trending in the right direction post-migration.",
+                "Hiring velocity is good; the open staff-engineer role is the main risk to Q1 execution.",
+            ],
+            directorInsights: [
+                "The holiday freeze launch date is realistic only if the export-format spec is locked by Friday.",
+                "Expansion revenue outweighs new-logo revenue, which may affect Q1 pipeline planning.",
+            ],
+            aiSuggestions: [
+                "Schedule a follow-up to review the export-format spec before Friday.",
+                "Draft a one-page Q4 win story for the board using the churn/SLA numbers.",
+            ],
             provider: "groq",
             model: "llama-3.1-70b-versatile",
         },
@@ -159,10 +171,22 @@ const SEEDS: DemoRecordingSeed[] = [
                 "Trim the welcome email sequence: fewer sends, shorter copy.",
                 "Capture the security-questionnaire-turnaround claim for the sales deck.",
             ],
-            recommendations: null,
-            managementInsights: null,
-            directorInsights: null,
-            aiSuggestions: null,
+            recommendations: [
+                "Create a case study around the security-questionnaire turnaround.",
+                "Add API/docs parity examples to the evaluation landing page.",
+            ],
+            managementInsights: [
+                "Acme reached productive use within three days, indicating strong onboarding efficiency.",
+                "The security review process is a competitive advantage in procurement-heavy segments.",
+            ],
+            directorInsights: [
+                "Acme's onboarding-email feedback suggests a quick win that improves net retention.",
+                "The security-questionnaire turnaround is a signal the GTM team should weaponize.",
+            ],
+            aiSuggestions: [
+                "Draft a shorter welcome-email sequence and A/B test it with new signups.",
+                "Add a slide about sub-week security reviews to the sales deck.",
+            ],
             provider: "openai",
             model: "gpt-4o-mini",
         },

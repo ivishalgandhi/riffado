@@ -29,16 +29,20 @@ export const SUMMARY_PRESETS: Record<SummaryPreset, SummaryPromptConfig> = {
         id: "general",
         name: "General Summary",
         description: "Concise summary of any audio transcription",
-        prompt: `Provide a concise summary of this audio transcription. Then extract key points and action items if any exist.
+        prompt: `Provide a concise summary of this audio transcription. Then extract key points, action items, recommendations, management insights, director insights, and AI suggestions if any exist.
 
 Respond in the following JSON format (no markdown, no code fences):
 {
   "summary": "A concise paragraph summarizing the transcription",
   "keyPoints": ["key point 1", "key point 2"],
-  "actionItems": ["action item 1", "action item 2"]
+  "actionItems": ["action item 1", "action item 2"],
+  "recommendations": ["recommendation 1"],
+  "managementInsights": ["management insight 1"],
+  "directorInsights": ["director insight 1"],
+  "aiSuggestions": ["AI suggestion 1"]
 }
 
-If there are no key points or action items, return empty arrays.
+If any array field has no relevant items, return an empty array for that field.
 
 Transcription:
 {transcription}`,
@@ -48,16 +52,20 @@ Transcription:
         name: "Meeting Notes",
         description:
             "Structured meeting summary with attendees, decisions, and action items",
-        prompt: `Summarize this meeting recording. Include attendees mentioned, decisions made, and action items.
+        prompt: `Summarize this meeting recording. Include attendees mentioned, decisions made, action items, recommendations, management insights, director insights, and AI suggestions.
 
 Respond in the following JSON format (no markdown, no code fences):
 {
   "summary": "A structured summary of the meeting including attendees and decisions",
   "keyPoints": ["decision 1", "decision 2", "key discussion point"],
-  "actionItems": ["action item with owner if mentioned", "follow-up task"]
+  "actionItems": ["action item with owner if mentioned", "follow-up task"],
+  "recommendations": ["recommended next step"],
+  "managementInsights": ["management insight"],
+  "directorInsights": ["director insight"],
+  "aiSuggestions": ["AI suggestion"]
 }
 
-If there are no key points or action items, return empty arrays.
+If any array field has no relevant items, return an empty array for that field.
 
 Transcription:
 {transcription}`,
@@ -66,14 +74,20 @@ Transcription:
         id: "key-points",
         name: "Key Points",
         description: "Extract the key points as a bullet list",
-        prompt: `Extract the key points from this transcription. Focus on the most important information, facts, and insights.
+        prompt: `Extract the key points from this transcription. Focus on the most important information, facts, and insights. Also include recommendations, management insights, director insights, and AI suggestions if relevant.
 
 Respond in the following JSON format (no markdown, no code fences):
 {
   "summary": "A brief one-sentence overview of the transcription",
   "keyPoints": ["key point 1", "key point 2", "key point 3"],
-  "actionItems": []
+  "actionItems": [],
+  "recommendations": ["recommendation 1"],
+  "managementInsights": ["management insight 1"],
+  "directorInsights": ["director insight 1"],
+  "aiSuggestions": ["AI suggestion 1"]
 }
+
+If any array field has no relevant items, return an empty array for that field.
 
 Transcription:
 {transcription}`,
@@ -83,16 +97,20 @@ Transcription:
         name: "Action Items",
         description:
             "Extract all action items, tasks, and follow-ups mentioned",
-        prompt: `Extract all action items, tasks, and follow-ups mentioned in this transcription. Include who is responsible if mentioned.
+        prompt: `Extract all action items, tasks, and follow-ups mentioned in this transcription. Include who is responsible if mentioned. Also include recommendations, management insights, director insights, and AI suggestions if relevant.
 
 Respond in the following JSON format (no markdown, no code fences):
 {
   "summary": "A brief overview of what was discussed",
   "keyPoints": [],
-  "actionItems": ["action item 1 (owner if known)", "task 2", "follow-up 3"]
+  "actionItems": ["action item 1 (owner if known)", "task 2", "follow-up 3"],
+  "recommendations": ["recommendation 1"],
+  "managementInsights": ["management insight 1"],
+  "directorInsights": ["director insight 1"],
+  "aiSuggestions": ["AI suggestion 1"]
 }
 
-If there are no action items, return an empty array but still provide a summary.
+If any array field has no relevant items, return an empty array for that field.
 
 Transcription:
 {transcription}`,

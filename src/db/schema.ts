@@ -314,6 +314,10 @@ export const aiEnhancements = pgTable(
         summary: text("summary"),
         actionItems: jsonb("action_items"), // Array of action items
         keyPoints: jsonb("key_points"), // Array of key points
+        recommendations: jsonb("recommendations"), // Array of recommendations
+        managementInsights: jsonb("management_insights"), // Array of management insights
+        directorInsights: jsonb("director_insights"), // Array of director insights
+        aiSuggestions: jsonb("ai_suggestions"), // Array of AI suggestions
         provider: varchar("provider", { length: 100 }).notNull(), // e.g., 'openai', 'anthropic-via-openrouter'
         model: varchar("model", { length: 100 }).notNull(), // e.g., 'gpt-4o', 'claude-3.5-sonnet'
         createdAt: timestamp("created_at").notNull().defaultNow(),

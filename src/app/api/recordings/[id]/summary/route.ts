@@ -225,6 +225,10 @@ export const POST = apiHandler<IdContext>(async (request, context) => {
     let summary = "";
     let keyPoints: string[] = [];
     let actionItems: string[] = [];
+    let recommendations: string[] = [];
+    let managementInsights: string[] = [];
+    let directorInsights: string[] = [];
+    let aiSuggestions: string[] = [];
 
     try {
         // Strip markdown code fences if present
@@ -237,6 +241,18 @@ export const POST = apiHandler<IdContext>(async (request, context) => {
         keyPoints = Array.isArray(parsed.keyPoints) ? parsed.keyPoints : [];
         actionItems = Array.isArray(parsed.actionItems)
             ? parsed.actionItems
+            : [];
+        recommendations = Array.isArray(parsed.recommendations)
+            ? parsed.recommendations
+            : [];
+        managementInsights = Array.isArray(parsed.managementInsights)
+            ? parsed.managementInsights
+            : [];
+        directorInsights = Array.isArray(parsed.directorInsights)
+            ? parsed.directorInsights
+            : [];
+        aiSuggestions = Array.isArray(parsed.aiSuggestions)
+            ? parsed.aiSuggestions
             : [];
     } catch {
         // Fallback: treat entire response as summary text
@@ -292,6 +308,12 @@ export const POST = apiHandler<IdContext>(async (request, context) => {
             const encryptedSummary = encryptText(summary);
             const encryptedKeyPoints = encryptJsonField(keyPoints);
             const encryptedActionItems = encryptJsonField(actionItems);
+            const encryptedRecommendations = encryptJsonField(recommendations);
+            const encryptedManagementInsights =
+                encryptJsonField(managementInsights);
+            const encryptedDirectorInsights =
+                encryptJsonField(directorInsights);
+            const encryptedAiSuggestions = encryptJsonField(aiSuggestions);
 
             if (existing) {
                 await tx
@@ -300,6 +322,10 @@ export const POST = apiHandler<IdContext>(async (request, context) => {
                         summary: encryptedSummary,
                         keyPoints: encryptedKeyPoints,
                         actionItems: encryptedActionItems,
+                        recommendations: encryptedRecommendations,
+                        managementInsights: encryptedManagementInsights,
+                        directorInsights: encryptedDirectorInsights,
+                        aiSuggestions: encryptedAiSuggestions,
                         provider: credentials.provider,
                         model,
                     })
@@ -316,6 +342,10 @@ export const POST = apiHandler<IdContext>(async (request, context) => {
                     summary: encryptedSummary,
                     keyPoints: encryptedKeyPoints,
                     actionItems: encryptedActionItems,
+                    recommendations: encryptedRecommendations,
+                    managementInsights: encryptedManagementInsights,
+                    directorInsights: encryptedDirectorInsights,
+                    aiSuggestions: encryptedAiSuggestions,
                     provider: credentials.provider,
                     model,
                 });
@@ -347,6 +377,10 @@ export const POST = apiHandler<IdContext>(async (request, context) => {
         summary,
         keyPoints,
         actionItems,
+        recommendations,
+        managementInsights,
+        directorInsights,
+        aiSuggestions,
         provider: credentials.provider,
         model,
     });
@@ -372,6 +406,10 @@ export const GET = apiHandler<IdContext>(async (request, context) => {
             summary: fixture.summary,
             keyPoints: fixture.keyPoints,
             actionItems: fixture.actionItems,
+            recommendations: fixture.recommendations,
+            managementInsights: fixture.managementInsights,
+            directorInsights: fixture.directorInsights,
+            aiSuggestions: fixture.aiSuggestions,
             provider: fixture.provider,
             model: fixture.model,
         });
@@ -418,6 +456,16 @@ export const GET = apiHandler<IdContext>(async (request, context) => {
         summary: decryptText(enhancement.summary),
         keyPoints: decryptJsonField<string[]>(enhancement.keyPoints),
         actionItems: decryptJsonField<string[]>(enhancement.actionItems),
+        recommendations: decryptJsonField<string[]>(
+            enhancement.recommendations,
+        ),
+        managementInsights: decryptJsonField<string[]>(
+            enhancement.managementInsights,
+        ),
+        directorInsights: decryptJsonField<string[]>(
+            enhancement.directorInsights,
+        ),
+        aiSuggestions: decryptJsonField<string[]>(enhancement.aiSuggestions),
         provider: enhancement.provider,
         model: enhancement.model,
         createdAt: enhancement.createdAt,
