@@ -5,6 +5,7 @@ import {
     ListChecks,
     type LucideIcon,
     Sparkles,
+    Wrench,
 } from "lucide-react";
 
 /**
@@ -19,6 +20,7 @@ export const SUMMARY_FIELD_CONFIG: Record<
     keyPoints: { title: "Key Points", icon: ListChecks },
     actionItems: { title: "Action Items", icon: ListChecks },
     aiSuggestions: { title: "AI Suggestions", icon: Sparkles },
+    aiTechnicalSuggestions: { title: "Technical Suggestions", icon: Wrench },
     recommendations: { title: "Recommendations", icon: Lightbulb },
     managementInsights: { title: "Management Insights", icon: Briefcase },
     directorInsights: { title: "Director Insights", icon: Crown },
@@ -28,6 +30,7 @@ export const SUMMARY_FIELD_ORDER = [
     "keyPoints",
     "actionItems",
     "aiSuggestions",
+    "aiTechnicalSuggestions",
     "recommendations",
     "managementInsights",
     "directorInsights",
