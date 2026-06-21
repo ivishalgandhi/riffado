@@ -1,16 +1,3 @@
-export type SummaryPreset =
-    | "general"
-    | "meeting-notes"
-    | "key-points"
-    | "action-items";
-
-export interface SummaryPromptConfig {
-    id: SummaryPreset;
-    name: string;
-    description: string;
-    prompt: string;
-}
-
 export interface CustomSummaryPrompt {
     id: string;
     name: string;
@@ -19,16 +6,19 @@ export interface CustomSummaryPrompt {
 }
 
 export interface SummaryPromptConfiguration {
-    /** Preset id or custom prompt id. */
+    /** Prompt id — matches a CustomSummaryPrompt.id stored in the DB. */
     selectedPrompt: string;
     customPrompts: CustomSummaryPrompt[];
 }
 
-export const SUMMARY_PRESETS: Record<SummaryPreset, SummaryPromptConfig> = {
-    general: {
+/**
+ * Seed data written to the DB on first settings load when no prompts exist.
+ * IDs are stable so existing selectedPrompt values in the DB stay valid.
+ */
+export const DEFAULT_SUMMARY_PROMPTS: CustomSummaryPrompt[] = [
+    {
         id: "general",
         name: "General Summary",
-        description: "Concise summary of any audio transcription",
         prompt: `Provide a concise summary of this audio transcription. Then extract key points, action items, recommendations, management insights, director insights, and AI suggestions if any exist.
 
 Respond in the following JSON format (no markdown, no code fences):
@@ -46,12 +36,11 @@ If any array field has no relevant items, return an empty array for that field.
 
 Transcription:
 {transcription}`,
+        createdAt: "2024-01-01T00:00:00.000Z",
     },
-    "meeting-notes": {
+    {
         id: "meeting-notes",
         name: "Meeting Notes",
-        description:
-            "Structured meeting summary with attendees, decisions, and action items",
         prompt: `Summarize this meeting recording. Include attendees mentioned, decisions made, action items, recommendations, management insights, director insights, and AI suggestions.
 
 Respond in the following JSON format (no markdown, no code fences):
@@ -69,11 +58,11 @@ If any array field has no relevant items, return an empty array for that field.
 
 Transcription:
 {transcription}`,
+        createdAt: "2024-01-01T00:00:00.000Z",
     },
-    "key-points": {
+    {
         id: "key-points",
         name: "Key Points",
-        description: "Extract the key points as a bullet list",
         prompt: `Extract the key points from this transcription. Focus on the most important information, facts, and insights. Also include recommendations, management insights, director insights, and AI suggestions if relevant.
 
 Respond in the following JSON format (no markdown, no code fences):
@@ -91,12 +80,11 @@ If any array field has no relevant items, return an empty array for that field.
 
 Transcription:
 {transcription}`,
+        createdAt: "2024-01-01T00:00:00.000Z",
     },
-    "action-items": {
+    {
         id: "action-items",
         name: "Action Items",
-        description:
-            "Extract all action items, tasks, and follow-ups mentioned",
         prompt: `Extract all action items, tasks, and follow-ups mentioned in this transcription. Include who is responsible if mentioned. Also include recommendations, management insights, director insights, and AI suggestions if relevant.
 
 Respond in the following JSON format (no markdown, no code fences):
@@ -114,12 +102,12 @@ If any array field has no relevant items, return an empty array for that field.
 
 Transcription:
 {transcription}`,
+        createdAt: "2024-01-01T00:00:00.000Z",
     },
-};
+];
 
-export function getSummaryPromptForPreset(preset: SummaryPreset): string {
-    return SUMMARY_PRESETS[preset].prompt;
-}
+/** Used by the API route when no prompts are configured at all. */
+export const FALLBACK_SUMMARY_PROMPT = DEFAULT_SUMMARY_PROMPTS[0].prompt;
 
 export function getDefaultSummaryPromptConfig(): SummaryPromptConfiguration {
     return {
@@ -130,30 +118,19 @@ export function getDefaultSummaryPromptConfig(): SummaryPromptConfiguration {
 
 export function getAllSummaryPrompts(
     config: SummaryPromptConfiguration,
-): Array<{
-    id: string;
-    name: string;
-    description: string;
-    prompt: string;
-    isPreset: boolean;
-}> {
-    const presets = Object.values(SUMMARY_PRESETS).map((p) => ({
+): Array<{ id: string; name: string; prompt: string }> {
+    return config.customPrompts.map((p) => ({
         id: p.id,
         name: p.name,
-        description: p.description,
         prompt: p.prompt,
-        isPreset: true,
     }));
+}
 
-    const customs = config.customPrompts.map((p) => ({
-        id: p.id,
-        name: p.name,
-        description: "Custom prompt",
-        prompt: p.prompt,
-        isPreset: false,
-    }));
-
-    return [...presets, ...customs];
+export function getSummaryPromptById(
+    id: string,
+    config: SummaryPromptConfiguration,
+): string | null {
+    return config.customPrompts.find((p) => p.id === id)?.prompt ?? null;
 }
 
 export interface AiOutputLanguageOption {
@@ -209,16 +186,4 @@ export function getAiOutputLanguageDirective(
     const match = AI_OUTPUT_LANGUAGES.find((l) => l.code === code);
     if (!match) return null;
     return `IMPORTANT: Write all natural-language output in ${match.label}, regardless of the transcription's language. Keep any JSON keys in English exactly as specified.`;
-}
-
-export function getSummaryPromptById(
-    id: string,
-    config: SummaryPromptConfiguration,
-): string | null {
-    if (id in SUMMARY_PRESETS) {
-        return SUMMARY_PRESETS[id as SummaryPreset].prompt;
-    }
-
-    const custom = config.customPrompts.find((p) => p.id === id);
-    return custom?.prompt || null;
 }

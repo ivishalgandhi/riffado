@@ -11,6 +11,7 @@ import {
 } from "@/db/schema";
 import { buildChatCompletionParams } from "@/lib/ai/chat-completion-params";
 import {
+    FALLBACK_SUMMARY_PROMPT,
     getAiOutputLanguageDirective,
     getDefaultSummaryPromptConfig,
     getSummaryPromptById,
@@ -98,18 +99,7 @@ export const POST = apiHandler<IdContext>(async (request, context) => {
     let promptTemplate = getSummaryPromptById(selectedPreset, promptConfig);
 
     if (!promptTemplate) {
-        const defaultConfig = getDefaultSummaryPromptConfig();
-        promptTemplate = getSummaryPromptById(
-            defaultConfig.selectedPrompt,
-            defaultConfig,
-        );
-        if (!promptTemplate) {
-            throw new AppError(
-                ErrorCode.INTERNAL_ERROR,
-                "Failed to load summary prompt",
-                500,
-            );
-        }
+        promptTemplate = FALLBACK_SUMMARY_PROMPT;
     }
 
     const [enhancementCredentials] = await db

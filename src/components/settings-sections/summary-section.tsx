@@ -18,6 +18,7 @@ import { useSettings } from "@/hooks/use-settings";
 import {
     AI_OUTPUT_LANGUAGES,
     type CustomSummaryPrompt,
+    DEFAULT_SUMMARY_PROMPTS,
     getAllSummaryPrompts,
     getDefaultSummaryPromptConfig,
     type SummaryPromptConfiguration,
@@ -33,11 +34,11 @@ export function SummarySection() {
     const [summaryPrompt, setSummaryPrompt] =
         useState<SummaryPromptConfiguration>(getDefaultSummaryPromptConfig());
     const [outputLanguage, setOutputLanguage] = useState<string>("auto");
-    const [isCustomPromptFormOpen, setIsCustomPromptFormOpen] = useState(false);
-    const [editingCustomPrompt, setEditingCustomPrompt] =
+    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [editingPrompt, setEditingPrompt] =
         useState<CustomSummaryPrompt | null>(null);
-    const [customName, setCustomName] = useState("");
-    const [customPromptText, setCustomPromptText] = useState("");
+    const [formName, setFormName] = useState("");
+    const [formText, setFormText] = useState("");
 
     const allPrompts = getAllSummaryPrompts(summaryPrompt);
 
@@ -50,10 +51,28 @@ export function SummarySection() {
                     const config =
                         (data.summaryPrompt as SummaryPromptConfiguration | null) ||
                         getDefaultSummaryPromptConfig();
-                    setSummaryPrompt({
-                        selectedPrompt: config.selectedPrompt || "general",
-                        customPrompts: config.customPrompts || [],
-                    });
+                    const customPrompts = config.customPrompts || [];
+
+                    // Seed default prompts on first use so they're editable.
+                    if (customPrompts.length === 0) {
+                        const seeded: SummaryPromptConfiguration = {
+                            selectedPrompt: "general",
+                            customPrompts: DEFAULT_SUMMARY_PROMPTS,
+                        };
+                        setSummaryPrompt(seeded);
+                        // Fire-and-forget; errors are non-fatal here.
+                        fetch("/api/settings/user", {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ summaryPrompt: seeded }),
+                        }).catch(() => {});
+                    } else {
+                        setSummaryPrompt({
+                            selectedPrompt: config.selectedPrompt || "general",
+                            customPrompts,
+                        });
+                    }
+
                     if (typeof data.aiOutputLanguage === "string") {
                         setOutputLanguage(data.aiOutputLanguage);
                     } else {
@@ -69,23 +88,19 @@ export function SummarySection() {
         fetchSettings();
     }, [setIsLoadingSettings]);
 
-    const saveSummaryPrompt = async (
+    const savePromptConfig = async (
         next: SummaryPromptConfiguration,
         onSuccess?: () => void,
     ) => {
         const previous = summaryPrompt;
         setSummaryPrompt(next);
-
         try {
             const response = await fetch("/api/settings/user", {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ summaryPrompt: next }),
             });
-
-            if (!response.ok) {
-                throw new Error("Failed to save settings");
-            }
+            if (!response.ok) throw new Error();
             onSuccess?.();
         } catch {
             setSummaryPrompt(previous);
@@ -93,104 +108,85 @@ export function SummarySection() {
         }
     };
 
-    const handlePresetChange = async (value: string) => {
-        await saveSummaryPrompt({
-            ...summaryPrompt,
-            selectedPrompt: value,
-        });
+    const handleDefaultChange = (value: string) =>
+        savePromptConfig({ ...summaryPrompt, selectedPrompt: value });
+
+    const handleSaveForm = async () => {
+        if (!formName.trim() || !formText.trim()) return;
+        if (editingPrompt) {
+            await savePromptConfig(
+                {
+                    ...summaryPrompt,
+                    customPrompts: summaryPrompt.customPrompts.map((p) =>
+                        p.id === editingPrompt.id
+                            ? {
+                                  ...p,
+                                  name: formName.trim(),
+                                  prompt: formText.trim(),
+                              }
+                            : p,
+                    ),
+                },
+                closeForm,
+            );
+        } else {
+            const next: CustomSummaryPrompt = {
+                id: generateId(),
+                name: formName.trim(),
+                prompt: formText.trim(),
+                createdAt: new Date().toISOString(),
+            };
+            await savePromptConfig(
+                {
+                    ...summaryPrompt,
+                    customPrompts: [...summaryPrompt.customPrompts, next],
+                    selectedPrompt: summaryPrompt.selectedPrompt || next.id,
+                },
+                closeForm,
+            );
+        }
     };
 
-    const handleAddCustomPrompt = async () => {
-        if (!customName.trim() || !customPromptText.trim()) return;
-        const next: CustomSummaryPrompt = {
-            id: generateId(),
-            name: customName.trim(),
-            prompt: customPromptText.trim(),
-            createdAt: new Date().toISOString(),
-        };
-        await saveSummaryPrompt(
-            {
-                ...summaryPrompt,
-                customPrompts: [...summaryPrompt.customPrompts, next],
-                selectedPrompt: summaryPrompt.selectedPrompt || next.id,
-            },
-            () => {
-                setCustomName("");
-                setCustomPromptText("");
-                setIsCustomPromptFormOpen(false);
-            },
-        );
-    };
-
-    const handleEditCustomPrompt = async () => {
-        if (
-            !editingCustomPrompt ||
-            !customName.trim() ||
-            !customPromptText.trim()
-        )
-            return;
-        await saveSummaryPrompt(
-            {
-                ...summaryPrompt,
-                customPrompts: summaryPrompt.customPrompts.map((p) =>
-                    p.id === editingCustomPrompt.id
-                        ? {
-                              ...p,
-                              name: customName.trim(),
-                              prompt: customPromptText.trim(),
-                          }
-                        : p,
-                ),
-            },
-            () => {
-                setEditingCustomPrompt(null);
-                setCustomName("");
-                setCustomPromptText("");
-            },
-        );
-    };
-
-    const handleDeleteCustomPrompt = async (id: string) => {
+    const handleDelete = async (id: string) => {
         const nextCustoms = summaryPrompt.customPrompts.filter(
             (p) => p.id !== id,
         );
-        await saveSummaryPrompt({
+        const nextSelected =
+            summaryPrompt.selectedPrompt === id
+                ? (nextCustoms[0]?.id ?? "")
+                : summaryPrompt.selectedPrompt;
+        await savePromptConfig({
             ...summaryPrompt,
             customPrompts: nextCustoms,
-            selectedPrompt:
-                summaryPrompt.selectedPrompt === id
-                    ? "general"
-                    : summaryPrompt.selectedPrompt,
+            selectedPrompt: nextSelected,
         });
     };
 
     const openEditForm = (prompt: CustomSummaryPrompt) => {
-        setEditingCustomPrompt(prompt);
-        setCustomName(prompt.name);
-        setCustomPromptText(prompt.prompt);
-        setIsCustomPromptFormOpen(true);
+        setEditingPrompt(prompt);
+        setFormName(prompt.name);
+        setFormText(prompt.prompt);
+        setIsFormOpen(true);
     };
 
     const openAddForm = () => {
-        setEditingCustomPrompt(null);
-        setCustomName("");
-        setCustomPromptText("");
-        setIsCustomPromptFormOpen(true);
+        setEditingPrompt(null);
+        setFormName("");
+        setFormText("");
+        setIsFormOpen(true);
     };
 
     const closeForm = () => {
-        setIsCustomPromptFormOpen(false);
-        setEditingCustomPrompt(null);
-        setCustomName("");
-        setCustomPromptText("");
+        setIsFormOpen(false);
+        setEditingPrompt(null);
+        setFormName("");
+        setFormText("");
     };
 
     const handleLanguageChange = async (value: string) => {
         const previous = outputLanguage;
         setOutputLanguage(value);
-
         try {
-            // Persist `null` for `auto` so the column reflects "no preference".
             const response = await fetch("/api/settings/user", {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
@@ -198,10 +194,7 @@ export function SummarySection() {
                     aiOutputLanguage: value === "auto" ? null : value,
                 }),
             });
-
-            if (!response.ok) {
-                throw new Error("Failed to save settings");
-            }
+            if (!response.ok) throw new Error();
         } catch {
             setOutputLanguage(previous);
             toast.error("Failed to save settings. Changes reverted.");
@@ -220,17 +213,15 @@ export function SummarySection() {
         <div className="space-y-6">
             <SettingsSectionHeader
                 title="Summary"
-                description="Prompt presets and provider used when generating recording summaries."
+                description="Prompts used when generating recording summaries."
                 icon={ListChecks}
             />
             <div className="space-y-4">
                 <div className="space-y-2">
-                    <Label htmlFor="summary-preset">
-                        Default summary prompt
-                    </Label>
+                    <Label htmlFor="summary-preset">Default prompt</Label>
                     <Select
                         value={summaryPrompt.selectedPrompt}
-                        onValueChange={handlePresetChange}
+                        onValueChange={handleDefaultChange}
                         disabled={isSavingSettings}
                     >
                         <SelectTrigger id="summary-preset" className="w-full">
@@ -238,33 +229,26 @@ export function SummarySection() {
                                 {allPrompts.find(
                                     (p) =>
                                         p.id === summaryPrompt.selectedPrompt,
-                                )?.name || "General Summary"}
+                                )?.name || "Select a prompt"}
                             </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
                             {allPrompts.map((prompt) => (
                                 <SelectItem key={prompt.id} value={prompt.id}>
-                                    <div>
-                                        <div>{prompt.name}</div>
-                                        <div className="text-xs text-muted-foreground">
-                                            {prompt.isPreset
-                                                ? prompt.description
-                                                : "Custom prompt"}
-                                        </div>
-                                    </div>
+                                    {prompt.name}
                                 </SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
-                        The default prompt used when generating summaries. You
-                        can override this per-recording.
+                        Used by default when generating summaries. Overridable
+                        per-recording.
                     </p>
                 </div>
 
                 <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                        <Label>Custom prompts</Label>
+                        <Label>Prompts</Label>
                         <Button
                             variant="outline"
                             size="sm"
@@ -275,9 +259,9 @@ export function SummarySection() {
                             Add
                         </Button>
                     </div>
-                    {summaryPrompt.customPrompts.length === 0 ? (
+                    {allPrompts.length === 0 ? (
                         <p className="text-sm text-muted-foreground">
-                            No custom prompts yet.
+                            No prompts yet. Add one to get started.
                         </p>
                     ) : (
                         <div className="space-y-2">
@@ -304,9 +288,7 @@ export function SummarySection() {
                                             size="icon"
                                             className="size-7 text-destructive hover:text-destructive"
                                             onClick={() =>
-                                                handleDeleteCustomPrompt(
-                                                    prompt.id,
-                                                )
+                                                handleDelete(prompt.id)
                                             }
                                             disabled={isSavingSettings}
                                         >
@@ -319,28 +301,33 @@ export function SummarySection() {
                     )}
                 </div>
 
-                {isCustomPromptFormOpen && (
+                {isFormOpen && (
                     <div className="space-y-2 rounded-md border p-3">
-                        <Label htmlFor="custom-prompt-name">Name</Label>
+                        <Label htmlFor="prompt-name">Name</Label>
                         <Input
-                            id="custom-prompt-name"
-                            value={customName}
-                            onChange={(e) => setCustomName(e.target.value)}
+                            id="prompt-name"
+                            value={formName}
+                            onChange={(e) => setFormName(e.target.value)}
                             placeholder="e.g., Standup update"
                             disabled={isSavingSettings}
                         />
-                        <Label htmlFor="custom-prompt-text">Prompt</Label>
+                        <Label htmlFor="prompt-text">Prompt</Label>
                         <textarea
-                            id="custom-prompt-text"
-                            value={customPromptText}
-                            onChange={(e) =>
-                                setCustomPromptText(e.target.value)
-                            }
-                            placeholder="Instructions for the summary..."
-                            rows={4}
+                            id="prompt-text"
+                            value={formText}
+                            onChange={(e) => setFormText(e.target.value)}
+                            placeholder="Instructions for the AI..."
+                            rows={6}
                             disabled={isSavingSettings}
                             className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:opacity-50"
                         />
+                        <p className="text-xs text-muted-foreground">
+                            Use{" "}
+                            <code className="font-mono">
+                                {"{transcription}"}
+                            </code>{" "}
+                            where the transcript should be inserted.
+                        </p>
                         <div className="flex items-center justify-end gap-2">
                             <Button
                                 variant="ghost"
@@ -352,18 +339,14 @@ export function SummarySection() {
                             </Button>
                             <Button
                                 size="sm"
-                                onClick={
-                                    editingCustomPrompt
-                                        ? handleEditCustomPrompt
-                                        : handleAddCustomPrompt
-                                }
+                                onClick={handleSaveForm}
                                 disabled={
                                     isSavingSettings ||
-                                    !customName.trim() ||
-                                    !customPromptText.trim()
+                                    !formName.trim() ||
+                                    !formText.trim()
                                 }
                             >
-                                {editingCustomPrompt ? "Save" : "Add"}
+                                {editingPrompt ? "Save" : "Add"}
                             </Button>
                         </div>
                     </div>
