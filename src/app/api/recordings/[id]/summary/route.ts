@@ -232,11 +232,20 @@ export const POST = apiHandler<IdContext>(async (request, context) => {
     let summary = "";
 
     try {
-        parsedSummary = JSON.parse(cleanContent) as Record<string, unknown>;
-        summary =
-            typeof parsedSummary.summary === "string"
-                ? parsedSummary.summary
-                : "";
+        const parsed = JSON.parse(cleanContent);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+            parsedSummary = parsed as Record<string, unknown>;
+            summary =
+                typeof parsedSummary.summary === "string"
+                    ? parsedSummary.summary
+                    : "";
+        } else {
+            // Wrap arrays or primitives so storage is always an object.
+            summary = Array.isArray(parsed)
+                ? parsed.join("\n")
+                : String(parsed);
+            parsedSummary = { summary };
+        }
     } catch {
         // Fallback: treat entire response as summary text
         summary = rawContent;
