@@ -1,0 +1,1 @@
+ALTER TABLE "ai_enhancements" ADD COLUMN "summary_json" jsonb;
