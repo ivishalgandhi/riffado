@@ -1,10 +1,13 @@
 "use client";
 
 import {
+    Briefcase,
     ChevronDown,
     ChevronUp,
+    Crown,
     FileText,
     Languages,
+    Lightbulb,
     ListChecks,
     Loader2,
     RefreshCw,
@@ -287,6 +290,122 @@ export function TranscriptionPanel({
                                                                         className="text-sm text-muted-foreground flex items-start gap-2"
                                                                     >
                                                                         <ListChecks className="size-3.5 mt-0.5 text-primary shrink-0" />
+                                                                        {item}
+                                                                    </li>
+                                                                );
+                                                            },
+                                                        )}
+                                                    </ul>
+                                                </div>
+                                            )}
+
+                                        {/* AI Suggestions */}
+                                        {summaryData.aiSuggestions &&
+                                            summaryData.aiSuggestions.length >
+                                                0 && (
+                                                <div>
+                                                    <h4 className="text-sm font-medium mb-2">
+                                                        AI Suggestions
+                                                    </h4>
+                                                    <ul className="space-y-1">
+                                                        {summaryData.aiSuggestions.map(
+                                                            (item) => {
+                                                                const key = `as-${item.slice(0, 32)}`;
+                                                                return (
+                                                                    <li
+                                                                        key={
+                                                                            key
+                                                                        }
+                                                                        className="text-sm text-muted-foreground flex items-start gap-2"
+                                                                    >
+                                                                        <Sparkles className="size-3.5 mt-0.5 text-primary shrink-0" />
+                                                                        {item}
+                                                                    </li>
+                                                                );
+                                                            },
+                                                        )}
+                                                    </ul>
+                                                </div>
+                                            )}
+
+                                        {/* Recommendations */}
+                                        {summaryData.recommendations &&
+                                            summaryData.recommendations.length >
+                                                0 && (
+                                                <div>
+                                                    <h4 className="text-sm font-medium mb-2">
+                                                        Recommendations
+                                                    </h4>
+                                                    <ul className="space-y-1">
+                                                        {summaryData.recommendations.map(
+                                                            (item) => {
+                                                                const key = `rec-${item.slice(0, 32)}`;
+                                                                return (
+                                                                    <li
+                                                                        key={
+                                                                            key
+                                                                        }
+                                                                        className="text-sm text-muted-foreground flex items-start gap-2"
+                                                                    >
+                                                                        <Lightbulb className="size-3.5 mt-0.5 text-primary shrink-0" />
+                                                                        {item}
+                                                                    </li>
+                                                                );
+                                                            },
+                                                        )}
+                                                    </ul>
+                                                </div>
+                                            )}
+
+                                        {/* Management Insights */}
+                                        {summaryData.managementInsights &&
+                                            summaryData.managementInsights
+                                                .length > 0 && (
+                                                <div>
+                                                    <h4 className="text-sm font-medium mb-2">
+                                                        Management Insights
+                                                    </h4>
+                                                    <ul className="space-y-1">
+                                                        {summaryData.managementInsights.map(
+                                                            (item) => {
+                                                                const key = `mi-${item.slice(0, 32)}`;
+                                                                return (
+                                                                    <li
+                                                                        key={
+                                                                            key
+                                                                        }
+                                                                        className="text-sm text-muted-foreground flex items-start gap-2"
+                                                                    >
+                                                                        <Briefcase className="size-3.5 mt-0.5 text-primary shrink-0" />
+                                                                        {item}
+                                                                    </li>
+                                                                );
+                                                            },
+                                                        )}
+                                                    </ul>
+                                                </div>
+                                            )}
+
+                                        {/* Director Insights */}
+                                        {summaryData.directorInsights &&
+                                            summaryData.directorInsights
+                                                .length > 0 && (
+                                                <div>
+                                                    <h4 className="text-sm font-medium mb-2">
+                                                        Director Insights
+                                                    </h4>
+                                                    <ul className="space-y-1">
+                                                        {summaryData.directorInsights.map(
+                                                            (item) => {
+                                                                const key = `di-${item.slice(0, 32)}`;
+                                                                return (
+                                                                    <li
+                                                                        key={
+                                                                            key
+                                                                        }
+                                                                        className="text-sm text-muted-foreground flex items-start gap-2"
+                                                                    >
+                                                                        <Crown className="size-3.5 mt-0.5 text-primary shrink-0" />
                                                                         {item}
                                                                     </li>
                                                                 );
