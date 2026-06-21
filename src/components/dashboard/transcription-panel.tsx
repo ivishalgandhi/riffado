@@ -11,6 +11,7 @@ import {
     Sparkles,
     Trash2,
 } from "lucide-react";
+import { SummaryMarkdown } from "@/components/summary-markdown";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -233,10 +234,10 @@ export function TranscriptionPanel({
                                 {summaryExpanded && (
                                     <div className="space-y-4">
                                         {/* Summary text */}
-                                        <div className="bg-muted rounded-lg p-4">
-                                            <p className="text-sm leading-relaxed">
-                                                {summaryData.summary}
-                                            </p>
+                                        <div className="bg-muted rounded-lg p-4 text-muted-foreground">
+                                            <SummaryMarkdown>
+                                                {summaryData.summary ?? ""}
+                                            </SummaryMarkdown>
                                         </div>
 
                                         {/* Dynamic summary sections */}
@@ -245,29 +246,31 @@ export function TranscriptionPanel({
                                                 const Icon = field.icon;
                                                 return (
                                                     <div key={field.key}>
-                                                        <h4 className="text-sm font-medium mb-2">
+                                                        <h4 className="text-sm font-medium mb-2 flex items-center gap-1.5">
+                                                            <Icon className="size-3.5 text-primary" />
                                                             {field.title}
                                                         </h4>
-                                                        <ul className="space-y-1">
+                                                        <div className="space-y-2">
                                                             {field.items.map(
                                                                 (item) => {
                                                                     const key = `${field.key}-${item.slice(0, 32)}`;
                                                                     return (
-                                                                        <li
+                                                                        <div
                                                                             key={
                                                                                 key
                                                                             }
-                                                                            className="text-sm text-muted-foreground flex items-start gap-2"
+                                                                            className="text-muted-foreground border-l-2 border-muted pl-3"
                                                                         >
-                                                                            <Icon className="size-3.5 mt-0.5 text-primary shrink-0" />
-                                                                            {
-                                                                                item
-                                                                            }
-                                                                        </li>
+                                                                            <SummaryMarkdown>
+                                                                                {
+                                                                                    item
+                                                                                }
+                                                                            </SummaryMarkdown>
+                                                                        </div>
                                                                     );
                                                                 },
                                                             )}
-                                                        </ul>
+                                                        </div>
                                                     </div>
                                                 );
                                             },

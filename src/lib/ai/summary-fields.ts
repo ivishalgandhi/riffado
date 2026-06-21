@@ -2,41 +2,38 @@ import {
     Briefcase,
     Crown,
     Lightbulb,
+    List,
     ListChecks,
     type LucideIcon,
     Sparkles,
     Wrench,
 } from "lucide-react";
 
-/**
- * Config for rendering dynamic summary JSON fields. Adding a new field is
- * one line here; the UI iterates over this map and renders any non-empty
- * array returned by the backend.
- */
-export const SUMMARY_FIELD_CONFIG: Record<
-    string,
-    { title: string; icon: LucideIcon }
-> = {
-    keyPoints: { title: "Key Points", icon: ListChecks },
-    actionItems: { title: "Action Items", icon: ListChecks },
-    aiSuggestions: { title: "AI Suggestions", icon: Sparkles },
-    aiTechnicalSuggestions: { title: "Technical Suggestions", icon: Wrench },
-    recommendations: { title: "Recommendations", icon: Lightbulb },
-    managementInsights: { title: "Management Insights", icon: Briefcase },
-    directorInsights: { title: "Director Insights", icon: Crown },
+/** Derive a human-readable title from a camelCase or PascalCase key. */
+function keyToTitle(key: string): string {
+    return key
+        .replace(/([A-Z])/g, " $1")
+        .replace(/^./, (s) => s.toUpperCase())
+        .trim();
+}
+
+/** Icon hints for known field names. Unknown fields get List. */
+const ICON_HINTS: Record<string, LucideIcon> = {
+    keyPoints: ListChecks,
+    actionItems: ListChecks,
+    aiSuggestions: Sparkles,
+    aiTechnicalSuggestions: Wrench,
+    recommendations: Lightbulb,
+    managementInsights: Briefcase,
+    directorInsights: Crown,
 };
 
-export const SUMMARY_FIELD_ORDER = [
-    "keyPoints",
-    "actionItems",
-    "aiSuggestions",
-    "aiTechnicalSuggestions",
-    "recommendations",
-    "managementInsights",
-    "directorInsights",
-];
-
-/** Extract non-empty array fields from a summary JSON object. */
+/**
+ * Extract every non-empty string-array field from a summary JSON object.
+ * Renders automatically for any field the backend returns — no registration
+ * needed. Add an entry to ICON_HINTS to get a custom icon; otherwise falls
+ * back to List.
+ */
 export function getSummaryArrayFields(
     data: Record<string, unknown> | null | undefined,
 ): Array<{ key: string; title: string; icon: LucideIcon; items: string[] }> {
@@ -47,15 +44,21 @@ export function getSummaryArrayFields(
         icon: LucideIcon;
         items: string[];
     }> = [];
-    for (const key of SUMMARY_FIELD_ORDER) {
-        const value = data[key];
+    for (const [key, value] of Object.entries(data)) {
+        if (key === "summary") continue;
         const items = Array.isArray(value)
-            ? value.filter((item): item is string => typeof item === "string")
+            ? value.filter(
+                  (item): item is string =>
+                      typeof item === "string" && item.trim().length > 0,
+              )
             : [];
         if (items.length === 0) continue;
-        const config = SUMMARY_FIELD_CONFIG[key];
-        if (!config) continue;
-        fields.push({ key, title: config.title, icon: config.icon, items });
+        fields.push({
+            key,
+            title: keyToTitle(key),
+            icon: ICON_HINTS[key] ?? List,
+            items,
+        });
     }
     return fields;
 }
