@@ -92,17 +92,19 @@ export function useTranscriptionSummary({
         setSummaryData(null);
     }
 
-    // Fetch when recording id changes or the re-fetch key bumps.
+    // Fetch when recording id, preset, or the re-fetch key changes.
     // biome-ignore lint/correctness/useExhaustiveDependencies: summaryFetchKey is an intentional re-fetch trigger
     useEffect(() => {
         if (!recordingId) {
             setSummaryData(null);
             return;
         }
+        setSummaryData(null);
         const controller = new AbortController();
-        fetch(`/api/recordings/${recordingId}/summary`, {
-            signal: controller.signal,
-        })
+        fetch(
+            `/api/recordings/${recordingId}/summary?preset=${encodeURIComponent(summaryPreset)}`,
+            { signal: controller.signal },
+        )
             .then((res) => res.json())
             .then((data) => {
                 if (data.summary) {
@@ -113,7 +115,7 @@ export function useTranscriptionSummary({
             })
             .catch(() => {});
         return () => controller.abort();
-    }, [recordingId, summaryFetchKey]);
+    }, [recordingId, summaryFetchKey, summaryPreset]);
 
     const handleSummarize = useCallback(async () => {
         if (!recordingId) return;

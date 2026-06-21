@@ -295,12 +295,30 @@ export const POST = apiHandler<IdContext>(async (request, context) => {
                 )
                 .limit(1);
 
-            // Encrypt content fields at rest. `summaryJson` holds the full
-            // structured response so future fields can be added without a
-            // schema change. The legacy `summary`/`keyPoints`/`actionItems`
-            // columns stay populated for backward compatibility.
+            // Merge the new preset's data into the byPreset map so each
+            // preset's last-generated summary is preserved independently.
+            // Legacy rows (summaryJson without a byPreset key) are migrated
+            // on first write by treating their content as the 'general' entry.
+            const existingFull =
+                decryptJsonField<Record<string, unknown>>(
+                    existing?.summaryJson,
+                ) ?? {};
+            const existingByPreset =
+                (existingFull.byPreset as
+                    | Record<string, Record<string, unknown>>
+                    | undefined) ??
+                (Object.keys(existingFull).length > 0
+                    ? { general: existingFull }
+                    : {});
+            const newFullJson = {
+                byPreset: {
+                    ...existingByPreset,
+                    [selectedPreset]: parsedSummary,
+                },
+            };
+
             const encryptedSummary = encryptText(summary);
-            const encryptedSummaryJson = encryptJsonField(parsedSummary);
+            const encryptedSummaryJson = encryptJsonField(newFullJson);
             const encryptedKeyPoints = encryptJsonField(
                 Array.isArray(parsedSummary.keyPoints)
                     ? parsedSummary.keyPoints
@@ -366,6 +384,7 @@ export const POST = apiHandler<IdContext>(async (request, context) => {
 
     return NextResponse.json({
         ...parsedSummary,
+        preset: selectedPreset,
         provider: credentials.provider,
         model,
     });
@@ -435,16 +454,33 @@ export const GET = apiHandler<IdContext>(async (request, context) => {
         return NextResponse.json({ summary: null });
     }
 
-    // Decrypt content fields before returning to the client. Legacy
-    // plaintext rows pass through verbatim during the backfill window.
-    const summaryJson =
+    const { searchParams } = new URL(request.url);
+    const preset = searchParams.get("preset") || "general";
+
+    const fullJson =
         decryptJsonField<Record<string, unknown>>(enhancement.summaryJson) ??
         {};
-    const legacySummary = decryptText(enhancement.summary);
+
+    // byPreset format (new): { byPreset: { [presetId]: summaryData } }
+    // Legacy format (old): summaryData directly at root
+    const byPreset = fullJson.byPreset as
+        | Record<string, Record<string, unknown>>
+        | undefined;
+    const presetData = byPreset
+        ? (byPreset[preset] ?? null)
+        : preset === "general"
+          ? Object.keys(fullJson).length > 0
+              ? fullJson
+              : null
+          : null;
+
+    if (!presetData) {
+        return NextResponse.json({ summary: null });
+    }
 
     return NextResponse.json({
-        summary: legacySummary,
-        ...summaryJson,
+        ...presetData,
+        preset,
         provider: enhancement.provider,
         model: enhancement.model,
         createdAt: enhancement.createdAt,
