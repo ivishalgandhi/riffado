@@ -20,17 +20,12 @@ COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-
-# `fumadocs-mdx`'s `lastModified` plugin shells out to `git log` for every
-# MDX page (see source.config.ts). The base `oven/bun:1` image is Debian
-# slim and ships without `git`, so install it here. Builder-stage only --
-# the `runner` stage below does not inherit this layer.
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends git \
-    && rm -rf /var/lib/apt/lists/*
+ENV RIFFADO_DOCKER_BUILD=1
 
 # Compile MDX docs into `src/.source/` before `next build` -- this is what
 # the postinstall hook would have done on a non-Docker install.
+# `lastModified` is disabled in this environment (see source.config.ts)
+# so we don't need to install git or ship the `.git/` history.
 RUN bunx fumadocs-mdx source.config.ts src/.source
 RUN bun run build > /tmp/build.log 2>&1 || (cat /tmp/build.log && exit 1)
 

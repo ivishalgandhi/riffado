@@ -40,9 +40,7 @@ audio
 drizzle
 
 # git
-# NOTE: `.git/` is intentionally NOT ignored. The `fumadocs-mdx`
-# `lastModified` plugin shells out to `git log` to stamp each MDX page.
-# `.git` only lands in the builder stage; the runner stage does not copy it.
+.git
 .gitignore
 
 # IDE

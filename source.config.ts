@@ -13,14 +13,13 @@ export const docs = defineDocs({
 export default defineConfig({
     // `lastModified` reads `git log` for each MDX file and exports a
     // `lastModified` field on every page. It requires BOTH the `git`
-    // binary on $PATH AND a `.git/` repo present at build time -- the
-    // plugin spawns `git` unconditionally and propagates any error.
-    // The Docker build satisfies both: the builder stage `apt-get`s
-    // git (see Dockerfile) and `.git/` is no longer dockerignored
-    // (see .dockerignore). The runner stage doesn't carry either, so
-    // the published image stays slim. Consumers: `src/app/sitemap.ts`
-    // (sitemap <lastmod>) and the docs page footer.
-    plugins: [lastModified()],
+    // binary on $PATH AND a `.git/` repo present at build time. We skip
+    // it inside the Docker build to avoid archiving the entire `.git/`
+    // history into the build context. The runner stage doesn't carry
+    // git either. Consumers: `src/app/sitemap.ts` (sitemap <lastmod>)
+    // and the docs page footer. Self-hosters building directly from a
+    // git checkout will still get lastModified dates.
+    plugins: process.env.RIFFADO_DOCKER_BUILD ? [] : [lastModified()],
     mdxOptions: {
         // Warm dual-theme shiki palette that lives close to the Riffado
         // OKLCH tokens defined in `src/app/globals.css`. `vitesse-light`
