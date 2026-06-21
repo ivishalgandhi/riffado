@@ -149,6 +149,7 @@ export const POST = apiHandler<IdContext>(async (request, context) => {
     const openai = new OpenAI({
         apiKey,
         baseURL: credentials.baseUrl || undefined,
+        timeout: 60_000,
     });
 
     // Use a chat model, not whisper
