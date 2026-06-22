@@ -23,7 +23,9 @@ export default async function Page({ params }: PageProps) {
     if (!page) notFound();
 
     const MDX = page.data.body;
-    const lastModified = page.data.lastModified;
+    const lastModified = (
+        page.data as typeof page.data & { lastModified?: string | Date }
+    ).lastModified;
 
     return (
         <DocsPage
